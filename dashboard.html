@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>หลังร้าน - POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 min-h-screen font-sans pb-20">
+
+    <!-- Navbar -->
+    <nav class="bg-gray-900 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                </div>
+                <h1 class="text-lg md:text-xl font-black tracking-wide">ระบบจัดการหลังร้าน</h1>
+            </div>
+            <a href="index.html" class="bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                <span>🛒</span> กลับหน้าร้าน
+            </a>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+
+        <!-- Date Picker -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center gap-3">
+            <span class="text-sm font-bold text-gray-500 shrink-0">ดูข้อมูลวันที่:</span>
+            <input type="date" id="stat-date" onchange="loadForDate()" class="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-blue-500 transition">
+            <span id="stat-date-badge" class="bg-blue-100 text-blue-700 text-xs font-black px-3 py-1 rounded-full">วันนี้</span>
+        </div>
+
+        <!-- สถิติ Dashboard -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center md:text-left">
+                <p class="text-gray-500 font-bold mb-1 text-sm">ยอดขาย (สำเร็จ)</p>
+                <h2 class="text-3xl font-black text-blue-600 mt-1" id="stat-sales">฿0</h2>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center md:text-left">
+                <p class="text-gray-500 font-bold mb-1 text-sm">กำไร</p>
+                <h2 class="text-3xl font-black text-green-500 mt-1" id="stat-profit">฿0</h2>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center md:text-left">
+                <p class="text-gray-500 font-bold mb-1 text-sm">จำนวนบิล</p>
+                <h2 class="text-3xl font-black text-gray-800 mt-1" id="stat-orders">0 บิล</h2>
+            </div>
+        </div>
+
+        <!-- Tab Menu -->
+        <div class="flex bg-gray-200/60 p-1.5 rounded-xl max-w-md">
+            <button onclick="switchTab('products')" id="tab-products" class="flex-1 px-4 py-2.5 bg-white text-gray-900 shadow-sm font-bold rounded-lg transition-all text-sm text-center">📦 ฐานข้อมูลสินค้า</button>
+            <button onclick="switchTab('history')" id="tab-history" class="flex-1 px-4 py-2.5 text-gray-600 font-medium hover:text-gray-900 rounded-lg transition-all text-sm text-center">🧾 ประวัติบิล</button>
+        </div>
+
+        <!-- 📦 Section 1: ฐานข้อมูลสินค้า -->
+        <div id="section-products" class="space-y-4">
+
+            <!-- ลิงก์ไปหน้าเพิ่มสินค้า -->
+            <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h3 class="font-black text-gray-900">🚚 รับเข้าสินค้า</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">เพิ่มสินค้าใหม่หรืออัปเดตสต็อกสินค้าที่มีอยู่</p>
+                </div>
+                <a href="add.html" class="bg-gray-900 hover:bg-black text-white font-black py-3 px-6 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center gap-2 text-sm">
+                    ➕ เพิ่ม / รับเข้าสินค้า
+                </a>
+            </div>
+
+            <!-- ตารางสินค้า -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-4 border-b border-gray-100 bg-gray-50">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <h3 class="font-bold text-gray-900">ฐานข้อมูลสินค้าทั้งหมด</h3>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button id="expiring-btn" onclick="toggleExpiringProducts()" class="flex items-center gap-1.5 bg-orange-50 text-orange-600 hover:bg-orange-100 border-2 border-orange-200 px-3 py-2 rounded-xl font-bold text-xs transition">
+                                🕐 ใกล้หมดอายุ (<span id="expiring-count">0</span>)
+                            </button>
+                            <button id="low-stock-btn" onclick="toggleLowStock()" class="flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 border-2 border-red-200 px-3 py-2 rounded-xl font-bold text-xs transition">
+                                ⚠️ ใกล้หมด (<span id="low-stock-count">0</span>)
+                            </button>
+                            <input type="text" id="product-search" oninput="filterProductTable()" placeholder="🔍 ค้นหาสินค้า..." class="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-blue-500 transition w-40">
+                        </div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left whitespace-nowrap">
+                        <thead class="text-xs text-gray-500 uppercase bg-white border-b">
+                            <tr>
+                                <th class="px-4 md:px-6 py-4">SKU / สินค้า</th>
+                                <th class="px-4 py-4 text-center">ทุน</th>
+                                <th class="px-4 py-4 text-center">ราคาขาย</th>
+                                <th class="px-4 py-4 text-center">คงเหลือ</th>
+                                <th class="px-4 md:px-6 py-4 text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="product-list" class="divide-y divide-gray-100">
+                            <tr><td colspan="5" class="text-center py-10 text-gray-400 font-bold">กำลังโหลดข้อมูล...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Pagination -->
+                <div id="pagination-bar" class="hidden p-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 bg-gray-50/50">
+                    <span id="page-info" class="text-sm text-gray-500 font-medium"></span>
+                    <div class="flex items-center gap-2">
+                        <button id="btn-prev" onclick="changePage(-1)" class="px-4 py-2 bg-white border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed">← ก่อนหน้า</button>
+                        <button id="btn-next" onclick="changePage(1)" class="px-4 py-2 bg-white border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed">ถัดไป →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🧾 Section 2: ประวัติบิล -->
+        <div id="section-history" class="hidden bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-4 md:p-6 border-b border-gray-100">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h3 class="text-base md:text-lg font-bold text-gray-900">ประวัติการขาย — <span id="history-date-label" class="text-blue-600 font-black">วันนี้</span></h3>
+                    <input type="text" id="bill-search" oninput="filterBills()" placeholder="🔍 ค้นหาเลขบิล..." class="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-blue-500 transition w-44">
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left whitespace-nowrap">
+                    <thead class="text-xs text-gray-500 uppercase bg-white border-b">
+                        <tr>
+                            <th class="px-4 md:px-6 py-4">เวลา</th>
+                            <th class="px-4 py-4">เลขบิล</th>
+                            <th class="px-4 py-4 text-right">ยอดสุทธิ</th>
+                            <th class="px-4 py-4 text-center">สถานะ</th>
+                            <th class="px-4 md:px-6 py-4 text-center">ดำเนินการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="order-list" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bill Detail Modal -->
+    <div id="bill-detail-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="p-4 bg-gray-900 text-white flex justify-between items-center shrink-0">
+                <div>
+                    <h3 class="font-black text-base" id="bill-detail-id">บิล #XXXXXXXX</h3>
+                    <p class="text-xs text-gray-300 mt-0.5" id="bill-detail-date"></p>
+                </div>
+                <button onclick="closeBillDetail()" class="bg-white/10 hover:bg-white/20 w-8 h-8 rounded-lg transition flex items-center justify-center font-bold">✕</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-2" id="bill-detail-items"></div>
+            <div class="p-4 border-t border-gray-100 bg-gray-50 shrink-0">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-bold text-gray-700">ยอดสุทธิ</span>
+                    <span class="font-black text-2xl text-blue-600" id="bill-detail-total">฿0</span>
+                </div>
+                <div id="bill-detail-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal แก้ไขสินค้า -->
+    <div id="edit-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">แก้ไขสินค้า</h2>
+            <form id="edit-form" class="space-y-4">
+                <input type="hidden" id="edit-id">
+                <div><label class="text-xs font-bold text-gray-600 block mb-1">ชื่อสินค้า</label><input type="text" id="edit-name" class="w-full border-2 border-gray-200 p-2.5 rounded-xl outline-none focus:border-blue-500 font-bold"></div>
+                <div><label class="text-xs font-bold text-gray-600 block mb-1">หมวดหมู่</label><input type="text" id="edit-category" class="w-full border-2 border-gray-200 p-2.5 rounded-xl outline-none focus:border-blue-500"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-xs font-bold text-gray-600 block mb-1">ทุน</label><input type="number" id="edit-cost" class="w-full border-2 border-gray-200 p-2.5 rounded-xl bg-gray-50 outline-none"></div>
+                    <div><label class="text-xs font-bold text-gray-600 block mb-1">ขาย</label><input type="number" id="edit-price" class="w-full border-2 border-gray-200 p-2.5 rounded-xl font-bold text-blue-600 outline-none focus:border-blue-500"></div>
+                </div>
+                <div><label class="text-xs font-bold text-gray-600 block mb-1">วันหมดอายุ</label><input type="date" id="edit-expiry" class="w-full border-2 border-gray-200 p-2.5 rounded-xl outline-none text-sm text-gray-600"></div>
+                <div class="flex gap-2 mt-6">
+                    <button type="button" onclick="closeEditModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 py-3 rounded-xl font-bold transition">ยกเลิก</button>
+                    <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md transition">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal แจ้งเตือน และ ประวัติ -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex justify-center items-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" id="modal-content">
+            <div class="p-6 text-center">
+                <div id="modal-icon" class="mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-4"></div>
+                <h3 class="text-xl font-black text-gray-900 mb-2" id="modal-title">แจ้งเตือน</h3>
+                <p class="text-sm text-gray-500 mb-4" id="modal-message">ข้อความ...</p>
+                <input type="password" id="modal-input" class="hidden w-full text-center border-2 border-gray-200 rounded-xl px-4 py-3 text-lg font-bold outline-none focus:border-blue-500 mb-4 tracking-widest">
+                <div id="modal-history-content" class="hidden max-h-48 overflow-y-auto text-left bg-gray-50 rounded-xl p-3 text-xs mb-4 border border-gray-100 space-y-2"></div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 flex gap-2 border-t border-gray-100" id="modal-buttons">
+                <button id="modal-cancel" class="flex-1 bg-white border border-gray-300 text-gray-700 py-2.5 rounded-xl font-bold hidden">ยกเลิก</button>
+                <button id="modal-confirm" class="flex-1 text-white py-2.5 rounded-xl font-bold shadow-md">ตกลง</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg z-50 font-bold text-sm hidden">
+        <span id="toast-msg">ข้อความ</span>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://opdclzrurmkfzezanmgj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wZGNsenJ1cm1rZnplemFubWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NjU2NDcsImV4cCI6MjA5NDM0MTY0N30.VRnEOQGb4jjOkJLyFeGc1Hpch0MQAekjjxmSl9X1gnE';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let allProducts = [];
+        let allOrders = [];
+        let uniqueCategories = [];
+        let lowStockOnly = false;
+        let expiringOnly = false;
+        let productSearchQuery = '';
+        let billSearchQuery = '';
+        let currentPage = 1;
+        const PAGE_SIZE = 20;
+
+        function getTodayStr() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        function getSelectedDate() {
+            return document.getElementById('stat-date').value || getTodayStr();
+        }
+
+        function getDateLabel(dateStr) {
+            if (dateStr === getTodayStr()) return 'วันนี้';
+            return new Date(dateStr + 'T12:00:00').toLocaleDateString('th-TH', { dateStyle: 'medium' });
+        }
+
+        window.onload = async () => {
+            try {
+                document.getElementById('stat-date').value = getTodayStr();
+                await loadDashboardStats();
+                await loadProductsAdmin();
+                await loadOrderHistory();
+            } catch(e) { console.error("Load Error: ", e); }
+        };
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.className = `fixed top-4 right-4 text-white px-6 py-3 rounded-xl shadow-lg z-50 font-bold text-sm ${isError ? 'bg-red-600' : 'bg-green-600'}`;
+            document.getElementById('toast-msg').textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        function switchTab(tab) {
+            document.getElementById('section-products').classList.add('hidden');
+            document.getElementById('section-history').classList.add('hidden');
+            const off = "flex-1 px-4 py-2.5 text-gray-600 font-medium hover:text-gray-900 rounded-lg transition-all text-sm text-center";
+            const on  = "flex-1 px-4 py-2.5 bg-white text-gray-900 shadow-sm font-bold rounded-lg transition-all text-sm text-center";
+            document.getElementById('tab-products').className = off;
+            document.getElementById('tab-history').className  = off;
+            document.getElementById(`section-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).className = on;
+        }
+
+        async function loadForDate() {
+            const label = getDateLabel(getSelectedDate());
+            document.getElementById('stat-date-badge').textContent = label;
+            await loadDashboardStats();
+            await loadOrderHistory();
+        }
+
+        async function loadDashboardStats() {
+            const dateStr = getSelectedDate();
+            const startOfDay = new Date(dateStr + 'T00:00:00');
+            const endOfDay = new Date(dateStr + 'T23:59:59.999');
+            const { data } = await supabaseClient.from('orders').select('*')
+                .gte('created_at', startOfDay.toISOString())
+                .lte('created_at', endOfDay.toISOString());
+            if (data) {
+                const valid = data.filter(o => o.status !== 'voided');
+                document.getElementById('stat-sales').textContent  = `฿${valid.reduce((s,o) => s + Number(o.total_amount), 0).toLocaleString()}`;
+                document.getElementById('stat-profit').textContent = `฿${valid.reduce((s,o) => s + Number(o.total_profit), 0).toLocaleString()}`;
+                document.getElementById('stat-orders').textContent = `${valid.length} บิล`;
+            }
+        }
+
+        async function loadProductsAdmin() {
+            let { data, error } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
+            if (error) {
+                const fallback = await supabaseClient.from('products').select('*').order('name');
+                data = fallback.data;
+            }
+            allProducts = data || [];
+            uniqueCategories = [...new Set(allProducts.map(p => p.category).filter(Boolean))];
+            currentPage = 1;
+            renderProductTable();
+        }
+
+        function filterProductTable() {
+            productSearchQuery = document.getElementById('product-search').value.trim().toLowerCase();
+            currentPage = 1;
+            renderProductTable();
+        }
+
+        function toggleLowStock() {
+            lowStockOnly = !lowStockOnly;
+            if (lowStockOnly) expiringOnly = false;
+            const btn = document.getElementById('low-stock-btn');
+            const expBtn = document.getElementById('expiring-btn');
+            if (lowStockOnly) {
+                btn.className = 'flex items-center gap-1.5 bg-red-500 text-white px-3 py-2 rounded-xl font-bold text-xs transition shadow-md';
+                expBtn.className = 'flex items-center gap-1.5 bg-orange-50 text-orange-600 hover:bg-orange-100 border-2 border-orange-200 px-3 py-2 rounded-xl font-bold text-xs transition';
+            } else {
+                btn.className = 'flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 border-2 border-red-200 px-3 py-2 rounded-xl font-bold text-xs transition';
+            }
+            currentPage = 1;
+            renderProductTable();
+        }
+
+        function toggleExpiringProducts() {
+            expiringOnly = !expiringOnly;
+            if (expiringOnly) lowStockOnly = false;
+            const expBtn = document.getElementById('expiring-btn');
+            const lowBtn = document.getElementById('low-stock-btn');
+            if (expiringOnly) {
+                expBtn.className = 'flex items-center gap-1.5 bg-orange-500 text-white px-3 py-2 rounded-xl font-bold text-xs transition shadow-md';
+                lowBtn.className = 'flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 border-2 border-red-200 px-3 py-2 rounded-xl font-bold text-xs transition';
+            } else {
+                expBtn.className = 'flex items-center gap-1.5 bg-orange-50 text-orange-600 hover:bg-orange-100 border-2 border-orange-200 px-3 py-2 rounded-xl font-bold text-xs transition';
+            }
+            currentPage = 1;
+            renderProductTable();
+        }
+
+        function changePage(delta) {
+            currentPage += delta;
+            renderProductTable();
+        }
+
+        function renderProductTable() {
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const in7Days = new Date(today); in7Days.setDate(today.getDate() + 7);
+
+            const lowCount = allProducts.filter(p => (p.stock ?? 0) <= 5).length;
+            const expCount = allProducts.filter(p => {
+                if (!p.expiry_date) return false;
+                const exp = new Date(p.expiry_date); exp.setHours(0, 0, 0, 0);
+                return exp <= in7Days && exp >= today;
+            }).length;
+            const lowEl = document.getElementById('low-stock-count');
+            const expEl = document.getElementById('expiring-count');
+            if (lowEl) lowEl.textContent = lowCount;
+            if (expEl) expEl.textContent = expCount;
+
+            let filtered = [...allProducts];
+            if (productSearchQuery) {
+                filtered = filtered.filter(p =>
+                    p.name.toLowerCase().includes(productSearchQuery) ||
+                    (p.sku && p.sku.toLowerCase().includes(productSearchQuery))
+                );
+            }
+            if (lowStockOnly) filtered = filtered.filter(p => (p.stock ?? 0) <= 5);
+            if (expiringOnly) filtered = filtered.filter(p => {
+                if (!p.expiry_date) return false;
+                const exp = new Date(p.expiry_date); exp.setHours(0, 0, 0, 0);
+                return exp <= in7Days && exp >= today;
+            });
+
+            const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const paginationBar = document.getElementById('pagination-bar');
+            const pageInfo = document.getElementById('page-info');
+            const btnPrev = document.getElementById('btn-prev');
+            const btnNext = document.getElementById('btn-next');
+            if (filtered.length > PAGE_SIZE) {
+                paginationBar.classList.remove('hidden');
+                const from = (currentPage - 1) * PAGE_SIZE + 1;
+                const to = Math.min(currentPage * PAGE_SIZE, filtered.length);
+                pageInfo.textContent = `แสดง ${from}–${to} จากทั้งหมด ${filtered.length} รายการ`;
+                btnPrev.disabled = currentPage <= 1;
+                btnNext.disabled = currentPage >= totalPages;
+            } else {
+                paginationBar.classList.add('hidden');
+            }
+
+            const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+            const tbody = document.getElementById('product-list');
+            tbody.innerHTML = '';
+            if (paged.length === 0) {
+                const msg = lowStockOnly ? 'ไม่มีสินค้าที่ใกล้หมด 🎉' : expiringOnly ? 'ไม่มีสินค้าใกล้หมดอายุ 🎉' : 'ยังไม่มีสินค้าในระบบ';
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-400 font-bold">${msg}</td></tr>`;
+                return;
+            }
+
+            paged.forEach(p => {
+                const isLow = (p.stock ?? 0) <= 5;
+                const expDate = p.expiry_date ? (() => { const d = new Date(p.expiry_date); d.setHours(0,0,0,0); return d; })() : null;
+                const isExpiring = expDate && expDate <= in7Days && expDate >= today;
+                const stockBadge = isLow
+                    ? `<span class="inline-flex items-center gap-1 text-red-600 font-black bg-red-100 px-2 py-1 rounded-lg">${p.stock ?? 0} ⚠️</span>`
+                    : `<span class="text-gray-900 font-bold">${p.stock ?? 0}</span>`;
+                const expiryText = p.expiry_date
+                    ? `<div class="text-[11px] mt-0.5 font-medium ${isExpiring ? 'text-orange-500' : 'text-gray-400'}">${isExpiring ? '⏰ ' : ''}หมดอายุ: ${new Date(p.expiry_date).toLocaleDateString('th-TH')}</div>`
+                    : '';
+                const skuText = p.sku ? `<div class="text-[11px] text-gray-400 font-mono mt-0.5">${p.sku}</div>` : '';
+                const rowClass = isExpiring ? 'bg-orange-50/40 border-b border-orange-100' : isLow ? 'bg-red-50/40 border-b border-red-100' : 'hover:bg-gray-50/80 border-b border-gray-100';
+                tbody.innerHTML += `
+                    <tr class="${rowClass} transition-colors">
+                        <td class="px-4 md:px-6 py-4"><div class="font-bold text-gray-900 text-sm">${p.name}</div>${skuText}${expiryText}</td>
+                        <td class="px-4 py-4 text-center text-gray-500 font-medium">฿${p.cost_price || 0}</td>
+                        <td class="px-4 py-4 text-center text-blue-600 font-black">฿${p.selling_price}</td>
+                        <td class="px-4 py-4 text-center">${stockBadge}</td>
+                        <td class="px-4 md:px-6 py-4 text-center space-x-2">
+                            <button onclick="openEditModal('${p.id}')" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-3 py-2 rounded-lg transition">แก้ไข</button>
+                            <button onclick="viewStockHistory('${p.id}', '${p.name.replace(/'/g, "\\'")}')" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-3 py-2 rounded-lg transition">ประวัติ</button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function openEditModal(id) {
+            const p = allProducts.find(item => item.id === id);
+            if (!p) return;
+            document.getElementById('edit-id').value = p.id;
+            document.getElementById('edit-name').value = p.name;
+            document.getElementById('edit-category').value = p.category || '';
+            document.getElementById('edit-cost').value = p.cost_price || 0;
+            document.getElementById('edit-price').value = p.selling_price;
+            document.getElementById('edit-expiry').value = p.expiry_date || '';
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+        function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }
+
+        document.getElementById('edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await supabaseClient.from('products').update({
+                name: document.getElementById('edit-name').value,
+                category: document.getElementById('edit-category').value,
+                cost_price: parseFloat(document.getElementById('edit-cost').value),
+                selling_price: parseFloat(document.getElementById('edit-price').value),
+                expiry_date: document.getElementById('edit-expiry').value || null
+            }).eq('id', document.getElementById('edit-id').value);
+            closeEditModal();
+            loadProductsAdmin();
+            showToast('บันทึกการแก้ไขเรียบร้อย');
+        });
+
+        function showModal({ title, message, type = 'info', historyData = null, onConfirm }) {
+            const modal = document.getElementById('custom-modal');
+            const icon = document.getElementById('modal-icon');
+            const confirmBtn = document.getElementById('modal-confirm');
+            const cancelBtn = document.getElementById('modal-cancel');
+            const inputField = document.getElementById('modal-input');
+            const historyBox = document.getElementById('modal-history-content');
+
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            inputField.classList.add('hidden'); inputField.value = '';
+            historyBox.classList.add('hidden'); historyBox.innerHTML = '';
+            cancelBtn.classList.add('hidden');
+
+            if (type === 'success') {
+                icon.innerHTML = `<svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                icon.className = "mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4";
+                confirmBtn.className = "flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 shadow-md";
+            } else if (type === 'danger' || type === 'prompt') {
+                icon.innerHTML = `<svg class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+                icon.className = "mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4";
+                confirmBtn.className = "flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 shadow-md";
+                cancelBtn.classList.remove('hidden');
+                cancelBtn.className = "flex-1 bg-white border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-50";
+                if (type === 'prompt') { inputField.classList.remove('hidden'); setTimeout(() => inputField.focus(), 100); }
+            } else if (type === 'history') {
+                icon.innerHTML = `<svg class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                icon.className = "mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4";
+                historyBox.classList.remove('hidden');
+                confirmBtn.className = "flex-1 bg-gray-900 text-white py-3 rounded-xl font-bold hover:bg-black shadow-md";
+                confirmBtn.textContent = 'ปิดหน้าต่าง';
+                if (historyData && historyData.length > 0) {
+                    historyData.forEach(h => {
+                        const date = new Date(h.created_at).toLocaleString('th-TH', {dateStyle: 'short', timeStyle: 'short'});
+                        const amt = h.amount > 0 ? `<span class="text-green-600 font-black">+${h.amount}</span>` : `<span class="text-red-600 font-black">${h.amount}</span>`;
+                        const exp = h.expiry_date ? `<br><span class="text-gray-400 text-[10px] font-medium">หมดอายุ: ${new Date(h.expiry_date).toLocaleDateString('th-TH')}</span>` : '';
+                        historyBox.innerHTML += `<div class="flex justify-between items-center border-b border-gray-200 pb-2 pt-1 last:border-0"><div><span class="font-bold text-gray-800">${date}</span><div class="text-gray-500 w-36 truncate mt-0.5">${h.note || '-'}${exp}</div></div>${amt}</div>`;
+                    });
+                } else {
+                    historyBox.innerHTML = '<div class="text-center text-gray-400 py-4 font-bold">ไม่มีประวัติการนำเข้า</div>';
+                }
+            }
+
+            modal.classList.remove('hidden');
+            confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+            cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+            document.getElementById('modal-confirm').addEventListener('click', () => { closeModal(); if (onConfirm) onConfirm(document.getElementById('modal-input').value); });
+            document.getElementById('modal-cancel').addEventListener('click', closeModal);
+        }
+
+        function closeModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        async function viewStockHistory(productId, productName) {
+            const { data, error } = await supabaseClient.from('stock_history').select('*').eq('product_id', productId).order('created_at', { ascending: false });
+            if (error) { showToast('ดึงประวัติสต็อกไม่ได้', true); return; }
+            showModal({ title: `ประวัติสต็อก`, message: productName, type: 'history', historyData: data });
+        }
+
+        async function loadOrderHistory() {
+            const dateStr = getSelectedDate();
+            const startOfDay = new Date(dateStr + 'T00:00:00');
+            const endOfDay = new Date(dateStr + 'T23:59:59.999');
+
+            const { data, error } = await supabaseClient.from('orders').select('*')
+                .gte('created_at', startOfDay.toISOString())
+                .lte('created_at', endOfDay.toISOString())
+                .order('created_at', { ascending: false });
+
+            const labelEl = document.getElementById('history-date-label');
+            if (labelEl) labelEl.textContent = getDateLabel(dateStr);
+
+            if (error) { showToast('ดึงประวัติบิลไม่ได้', true); return; }
+            allOrders = data || [];
+            billSearchQuery = '';
+            const billSearch = document.getElementById('bill-search');
+            if (billSearch) billSearch.value = '';
+            renderOrderList(allOrders);
+        }
+
+        function filterBills() {
+            billSearchQuery = document.getElementById('bill-search').value.trim().toLowerCase();
+            const filtered = allOrders.filter(o => o.id.toLowerCase().includes(billSearchQuery));
+            renderOrderList(filtered);
+        }
+
+        function renderOrderList(orders) {
+            const tbody = document.getElementById('order-list');
+            tbody.innerHTML = '';
+            if (!orders || orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-400 font-bold">ไม่มีบิลในวันที่เลือก</td></tr>';
+                return;
+            }
+            const td = 'px-4 md:px-6 py-4';
+            orders.forEach(order => {
+                const date = new Date(order.created_at).toLocaleString('th-TH', {dateStyle: 'medium', timeStyle: 'short'});
+                const shortId = order.id.substring(0, 8).toUpperCase();
+                const isVoided = order.status === 'voided';
+                const statusBadge = isVoided
+                    ? `<span class="bg-red-100 text-red-600 text-[10px] font-black px-2.5 py-1 rounded-lg">ยกเลิกแล้ว</span>`
+                    : `<span class="bg-green-100 text-green-700 text-[10px] font-black px-2.5 py-1 rounded-lg">สำเร็จ</span>`;
+                const actionBtns = isVoided
+                    ? `<button onclick="viewOrderDetail('${order.id}')" class="bg-white border-2 border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold transition shadow-sm">📋 ดูบิล</button>`
+                    : `<div class="flex items-center gap-1.5 justify-center">
+                            <button onclick="viewOrderDetail('${order.id}')" class="bg-white border-2 border-blue-200 text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-xl text-xs font-bold transition shadow-sm">📋 ดูบิล</button>
+                            <button onclick="promptVoidOrder('${order.id}')" class="bg-white border-2 border-gray-200 text-red-500 hover:bg-red-50 hover:border-red-200 px-3 py-2 rounded-xl text-xs font-bold transition shadow-sm">🗑️ ยกเลิก</button>
+                        </div>`;
+                tbody.innerHTML += `
+                    <tr class="${isVoided ? 'bg-red-50/30 grayscale opacity-70' : 'hover:bg-gray-50/80'} transition-colors border-b border-gray-100">
+                        <td class="${td} text-gray-500 font-medium text-xs">${date}</td>
+                        <td class="${td} font-mono text-sm font-bold text-gray-800">${shortId}</td>
+                        <td class="${td} text-right font-black text-blue-600 ${isVoided ? 'line-through opacity-50' : ''}">฿${order.total_amount.toLocaleString()}</td>
+                        <td class="${td} text-center">${statusBadge}</td>
+                        <td class="${td} text-center">${actionBtns}</td>
+                    </tr>`;
+            });
+        }
+
+        async function viewOrderDetail(orderId) {
+            const order = allOrders.find(o => o.id === orderId);
+            if (!order) return;
+            document.getElementById('bill-detail-id').textContent = `บิล #${order.id.substring(0, 8).toUpperCase()}`;
+            document.getElementById('bill-detail-date').textContent = new Date(order.created_at).toLocaleString('th-TH', {dateStyle: 'long', timeStyle: 'short'});
+            document.getElementById('bill-detail-total').textContent = `฿${order.total_amount.toLocaleString()}`;
+            const isVoided = order.status === 'voided';
+            document.getElementById('bill-detail-status').innerHTML = isVoided
+                ? `<span class="bg-red-100 text-red-600 text-xs font-black px-3 py-1.5 rounded-lg">ยกเลิกแล้ว</span>`
+                : `<span class="bg-green-100 text-green-700 text-xs font-black px-3 py-1.5 rounded-lg">สำเร็จ</span>`;
+
+            const itemsEl = document.getElementById('bill-detail-items');
+            itemsEl.innerHTML = '<div class="text-center text-gray-400 text-sm py-4">กำลังโหลด...</div>';
+            document.getElementById('bill-detail-modal').classList.remove('hidden');
+
+            const { data, error } = await supabaseClient.from('order_items').select('*, products(name)').eq('order_id', orderId);
+            if (error || !data) {
+                itemsEl.innerHTML = '<div class="text-center text-red-400 text-sm py-4">โหลดรายการไม่ได้</div>';
+                return;
+            }
+            itemsEl.innerHTML = '';
+            data.forEach(item => {
+                const name = item.products?.name || `สินค้า #${item.product_id.substring(0, 6)}`;
+                const subtotal = (item.price_at_time * item.quantity).toLocaleString();
+                itemsEl.innerHTML += `
+                    <div class="flex justify-between items-center bg-gray-50 rounded-xl p-3 border border-gray-100">
+                        <div class="flex-1 pr-2">
+                            <div class="font-bold text-gray-900 text-sm">${name}</div>
+                            <div class="text-xs text-gray-500 mt-0.5">฿${item.price_at_time} × ${item.quantity}</div>
+                        </div>
+                        <div class="font-black text-blue-600">฿${subtotal}</div>
+                    </div>`;
+            });
+        }
+
+        function closeBillDetail() {
+            document.getElementById('bill-detail-modal').classList.add('hidden');
+        }
+
+        function promptVoidOrder(orderId) {
+            showModal({
+                title: 'ยืนยันยกเลิกบิล', message: 'กรุณากรอกรหัสผ่าน (123) เพื่อคืนสต็อกเข้าระบบ', type: 'prompt',
+                onConfirm: async (pin) => {
+                    if (pin === '123') {
+                        try {
+                            const { data: items } = await supabaseClient.from('order_items').select('product_id, quantity').eq('order_id', orderId);
+                            if (items) {
+                                for (const item of items) {
+                                    const { data: prod } = await supabaseClient.from('products').select('stock').eq('id', item.product_id).single();
+                                    if (prod) {
+                                        await supabaseClient.from('products').update({ stock: (prod.stock || 0) + item.quantity }).eq('id', item.product_id);
+                                        await supabaseClient.from('stock_history').insert([{ product_id: item.product_id, amount: item.quantity, note: 'คืนสต็อก (ยกเลิกบิล)' }]);
+                                    }
+                                }
+                            }
+                            await supabaseClient.from('orders').update({ status: 'voided' }).eq('id', orderId);
+                            showModal({ title: 'ยกเลิกสำเร็จ', message: 'คืนสต็อกเข้าระบบเรียบร้อยแล้ว', type: 'success' });
+                            loadOrderHistory(); loadDashboardStats(); loadProductsAdmin();
+                        } catch (err) { showToast('ยกเลิกบิลไม่สำเร็จ: ' + err.message, true); }
+                    } else {
+                        setTimeout(() => showModal({ title: 'รหัสผิด!', message: 'รหัสผ่านไม่ถูกต้อง', type: 'danger' }), 300);
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

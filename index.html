@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>POS 7-Eleven Style</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 font-sans fixed inset-0 flex flex-col md:flex-row overflow-hidden">
+
+    <!-- 🛍️ ฝั่งหน้าร้าน -->
+    <div class="h-[60%] md:h-full w-full md:w-2/3 lg:w-3/4 flex flex-col bg-gray-50 hide-on-print border-b md:border-b-0">
+        
+        <div class="bg-white p-3 md:p-4 shadow-sm shrink-0 z-10">
+            <div class="flex justify-between items-center mb-3">
+                <h1 class="text-xl md:text-2xl font-black text-gray-900 tracking-tight">หน้าร้าน</h1>
+                <!-- 🌟 เปลี่ยนปุ่มตรงนี้ เหลือแค่ไป "หลังร้าน" ที่เดียว 🌟 -->
+                <a href="dashboard.html" class="bg-gray-900 hover:bg-black text-white py-2 px-4 rounded-xl text-sm font-bold shadow-md transition-all flex items-center gap-2 active:scale-95">
+                    <span>📊</span> หลังร้าน
+                </a>
+            </div>
+            <input type="text" id="search-input" oninput="filterProducts()" placeholder="🔍 ค้นหาชื่อสินค้า หรือสแกนบาร์โค้ด..." class="bg-gray-100 border-2 border-transparent focus:border-blue-500 text-gray-900 text-sm font-bold rounded-xl w-full p-3 outline-none transition-all">
+        </div>
+
+        <div class="bg-white px-3 md:px-4 pb-2 shrink-0 border-b border-gray-200">
+            <div id="category-container" class="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide pt-2"></div>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-3 md:p-4 relative">
+            <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 pb-20">
+                <div class="col-span-full text-center text-gray-400 mt-10 font-bold">กำลังโหลด...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🛒 ฝั่งตะกร้า -->
+    <div class="h-[40%] md:h-full w-full md:w-1/3 lg:w-1/4 bg-white flex flex-col shadow-xl z-20 hide-on-print border-l border-gray-200">
+        <div class="p-3 md:p-4 bg-blue-600 text-white font-bold text-base md:text-lg flex justify-between items-center shrink-0">
+            <span class="flex items-center gap-2"><span>🛒</span> บิลปัจจุบัน</span>
+            <button onclick="clearCart()" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors font-medium">ล้างบิล</button>
+        </div>
+        
+        <div id="cart-items" class="flex-1 overflow-y-auto p-2 md:p-3 space-y-2 bg-gray-50/50"></div>
+        
+        <div class="p-4 bg-white border-t border-gray-200 shrink-0" style="padding-bottom: max(1rem, env(safe-area-inset-bottom))">
+            <div class="flex justify-between items-end mb-4">
+                <span class="text-gray-500 font-bold text-sm md:text-base">ยอดสุทธิ:</span>
+                <span id="total-price" class="font-black text-3xl md:text-4xl text-blue-600 tracking-tight">฿0.00</span>
+            </div>
+            <button onclick="checkout()" id="checkout-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg shadow-blue-600/30 transition-transform active:scale-95 disabled:bg-gray-300 disabled:shadow-none text-base md:text-lg">
+                รับเงิน / พิมพ์บิล
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal ใบเสร็จ -->
+    <div id="receipt-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex justify-center items-center hide-on-print p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[90%] overflow-hidden">
+            <div class="p-3 bg-gray-900 text-white text-center font-bold shrink-0">ออกบิลสำเร็จ</div>
+            <div class="p-4 overflow-y-auto flex-1 bg-gray-200 flex justify-center">
+                <div id="printable-receipt" class="thermal-slip">
+                    <div class="text-center mb-3">
+                        <h2 class="font-bold text-xl">ร้านจิปาถะ & เบเกอรี่</h2>
+                        <p class="text-[11px] mt-1">ใบเสร็จรับเงิน</p>
+                        <p class="text-[11px]" id="receipt-date"></p>
+                        <p class="text-[11px] font-mono">No. <span id="receipt-id"></span></p>
+                    </div>
+                    <div class="border-t border-b border-dashed border-black py-2 mb-2">
+                        <div class="flex justify-between font-bold mb-1 text-[11px]"><span>รายการ</span><span>รวม</span></div>
+                        <div id="receipt-items" class="space-y-1"></div>
+                    </div>
+                    <div class="flex justify-between font-bold text-lg pt-1">
+                        <span>ยอดสุทธิ</span><span id="receipt-total">฿0.00</span>
+                    </div>
+                    <div class="text-center text-[11px] mt-4"><p>ขอบคุณที่ใช้บริการ</p></div>
+                </div>
+            </div>
+            <div class="p-4 bg-white flex gap-2 shrink-0 border-t border-gray-100">
+                <button onclick="window.print()" class="flex-1 bg-gray-900 hover:bg-black text-white py-3 rounded-xl font-bold shadow-md">🖨️ พิมพ์สลิป</button>
+                <button onclick="closeReceipt()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-xl font-bold transition">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert -->
+    <div id="pos-alert" class="fixed top-4 right-4 bg-red-600 text-white px-5 py-3 rounded-xl shadow-lg z-50 font-bold text-sm hidden">
+        <span id="pos-alert-text"></span>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
