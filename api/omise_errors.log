@@ -1,0 +1,28 @@
+[15-May-2026 14:38:14 Europe/Berlin] [Omise] Expire failed [400]: {
+  "object": "error",
+  "location": "https://www.omise.co/api-errors#failed-expire",
+  "code": "failed_expire",
+  "message": "charge cannot be expired"
+}
+
+[15-May-2026 14:42:47 Europe/Berlin] [Omise] Expire failed [400]: {
+  "object": "error",
+  "location": "https://www.omise.co/api-errors#failed-expire",
+  "code": "failed_expire",
+  "message": "charge cannot be expired"
+}
+
+[15-May-2026 15:16:22 Europe/Berlin] [Omise] Expire failed [400]: {
+  "object": "error",
+  "location": "https://www.omise.co/api-errors#failed-expire",
+  "code": "failed_expire",
+  "message": "charge cannot be expired"
+}
+
+[15-May-2026 15:23:30 Europe/Berlin] [Omise] Expire failed [400]: {
+  "object": "error",
+  "location": "https://www.omise.co/api-errors#failed-expire",
+  "code": "failed_expire",
+  "message": "charge cannot be expired"
+}
+

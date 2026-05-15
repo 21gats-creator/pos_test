@@ -1,0 +1,217 @@
+/* รีเซ็ตค่าพื้นฐาน */
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+body { margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+input { user-select: text; -webkit-user-select: text; }
+
+/* ซ่อน Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* ════════════════════════════════════════════
+   สไตล์การ์ดสินค้าแบบ 7-Eleven
+   ════════════════════════════════════════════ */
+.app-card {
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    border: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    height: 100%;
+}
+.app-card:active { transform: scale(0.96); }
+
+.app-card-img-wrapper {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    position: relative;
+    background-color: #f8fafc;
+    flex-shrink: 0;
+}
+.app-card-img-wrapper img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    position: absolute; top: 0; left: 0;
+}
+
+.stock-badge {
+    position: absolute; top: 6px; left: 6px;
+    background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+    color: white; font-size: 11px; font-weight: bold;
+    padding: 3px 8px; border-radius: 8px; z-index: 10;
+}
+.out-of-stock-layer {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.5); z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+}
+.out-of-stock-layer span {
+    background: #dc2626; color: white; font-size: 12px; font-weight: bold;
+    padding: 4px 12px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.app-card-body { padding: 10px; display: flex; flex-direction: column; flex-grow: 1; }
+.app-card-title {
+    font-size: 13px; font-weight: 700; color: #1f2937;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; line-height: 1.35; margin-bottom: 6px;
+}
+.app-card-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; }
+.app-card-price { color: #2563eb; font-weight: 900; font-size: 15px; }
+.app-card-btn {
+    background: #2563eb; color: white;
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 18px; line-height: 1; padding-bottom: 2px;
+}
+
+/* ════════════════════════════════════════════
+   Barcode Scanner Input
+   ════════════════════════════════════════════ */
+.barcode-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.barcode-input-wrapper .barcode-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+#barcode-input {
+    background: #f0fdf4;
+    border: 2px solid #bbf7d0;
+    color: #166534;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+#barcode-input:focus {
+    border-color: #16a34a;
+    background: #dcfce7;
+    outline: none;
+}
+#barcode-input.scan-error {
+    border-color: #fca5a5;
+    background: #fef2f2;
+}
+#barcode-input.scan-success {
+    border-color: #4ade80;
+    background: #f0fdf4;
+}
+
+/* pulse animation แสดงว่าพร้อมรับ barcode */
+.barcode-ready-dot {
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse-dot 1.5s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ════════════════════════════════════════════
+   Payment Modal
+   ════════════════════════════════════════════ */
+.payment-method-btn {
+    padding: 16px 12px;
+    border-radius: 14px;
+    border: 2px solid #e5e7eb;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 700;
+    font-size: 13px;
+    color: #374151;
+}
+.payment-method-btn:active { transform: scale(0.96); }
+.payment-method-btn.active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.quick-cash-btn {
+    padding: 10px 0;
+    border-radius: 12px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.1s;
+    color: #374151;
+}
+.quick-cash-btn:active { background: #dbeafe; color: #1d4ed8; transform: scale(0.96); }
+
+/* ════════════════════════════════════════════
+   QR Code Spinner
+   ════════════════════════════════════════════ */
+.qr-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: qr-spin 0.8s linear infinite;
+}
+@keyframes qr-spin { to { transform: rotate(360deg); } }
+
+.promptpay-pulse {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+.promptpay-pulse-dot {
+    width: 8px; height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: promptpay-blink 1s ease-in-out infinite;
+}
+.promptpay-pulse-dot:nth-child(2) { animation-delay: 0.2s; }
+.promptpay-pulse-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes promptpay-blink {
+    0%, 100% { opacity: 0.3; } 50% { opacity: 1; }
+}
+
+/* ════════════════════════════════════════════
+   ใบเสร็จ Thermal Slip
+   ════════════════════════════════════════════ */
+.thermal-slip {
+    background-color: #fffdf4; color: #000;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px; width: 100%; max-width: 300px;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin: 0 auto;
+}
+
+@media print {
+    body * { visibility: hidden; }
+    #receipt-modal { background: transparent; }
+    #printable-receipt, #printable-receipt * { visibility: visible; }
+    #printable-receipt {
+        position: absolute; left: 0; top: 0;
+        width: 100%; max-width: 80mm;
+        margin: 0; padding: 5px;
+        color: black; box-shadow: none; background-color: white;
+    }
+    .hide-on-print { display: none !important; }
+}
